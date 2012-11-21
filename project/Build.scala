@@ -30,15 +30,18 @@ import sbt.Keys._
 import com.typesafe.sbteclipse.plugin.EclipsePlugin._
 
 object Dependencies {
+  
+  // Internal dependencies.
 
-  private val kolichCommon = "com.kolich" % "kolich-common" % "0.0.4" % "compile"
   private val kolichHttpClient4Closure = "com.kolich" % "kolich-httpclient4-closure" % "0.0.4" % "compile"
+  
+  // External dependencies.
 
   private val signpostCore = "oauth.signpost" % "signpost-core" % "1.2.1.2" % "compile"
   private val signpostHttpClient4 = "oauth.signpost" % "signpost-commonshttp4" % "1.2.1.2" % "compile"
 
   val deps = Seq(
-    kolichCommon, kolichHttpClient4Closure,
+    kolichHttpClient4Closure,
     signpostCore, signpostHttpClient4)
 
 }
