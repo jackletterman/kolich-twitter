@@ -32,7 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-import com.kolich.twitter.exceptions.TwitterException;
+import com.kolich.twitter.exceptions.TwitterApiException;
 
 public final class TwitterDateFormat {
 
@@ -69,7 +69,7 @@ public final class TwitterDateFormat {
 			try {
 				result = twitterSearchApiDateFormat__.parse(date);
 			} catch (ParseException f) {
-				throw new TwitterException("Failed to parse: " + date, f);
+				throw new TwitterApiException("Failed to parse: " + date, f);
 			}
 		}
 		return result;
