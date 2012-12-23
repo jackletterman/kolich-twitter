@@ -33,6 +33,7 @@ import static oauth.signpost.OAuth.decodeForm;
 import static org.apache.http.HttpStatus.SC_OK;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +56,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.kolich.http.HttpClient4Closure.HttpFailure;
 import com.kolich.http.HttpClient4Closure.HttpResponseEither;
 import com.kolich.http.helpers.ByteArrayOrHttpFailureClosure;
@@ -222,8 +224,9 @@ public final class TwitterApiConnector {
 		private final OAuthConsumer consumer_;
 		private final int expectStatus_;
 		public TwitterApiGsonClosure(final HttpClient client, final Gson gson,
-			final OAuthConsumer consumer, final int expectStatus) {
-			super(client, gson);
+			final Type type, final OAuthConsumer consumer,
+			final int expectStatus) {
+			super(client, gson, type);
 			// If consumer is null, then we need to generate a default one
 			// using the key, secret, token and token secret.
 			if(consumer == null) {
@@ -235,6 +238,12 @@ public final class TwitterApiConnector {
 				consumer_ = consumer;
 			}
 			expectStatus_ = expectStatus;
+		}
+		public TwitterApiGsonClosure(final HttpClient client, final Gson gson,
+			final Class<T> clazz, final OAuthConsumer consumer,
+			final int expectStatus) {
+			this(client, gson, TypeToken.get(clazz).getType(), consumer,
+				expectStatus);
 		}
 		@Override
 		public void before(final HttpRequestBase request) throws Exception {
@@ -285,7 +294,7 @@ public final class TwitterApiConnector {
 		final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");
 		return new TwitterApiGsonClosure<User>(httpClient_, gson_.create(),
-			consumer, SC_OK) {
+			User.class, consumer, SC_OK) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
 				final List<NameValuePair> params = new ArrayList<NameValuePair>();		
@@ -311,7 +320,7 @@ public final class TwitterApiConnector {
 		checkNotNull(username, "Username cannot be null!");
 		checkNotNull(cursor, "Cursor cannot be null!");
 		return new TwitterApiGsonClosure<UserList>(httpClient_, gson_.create(),
-			consumer, SC_OK) {
+			UserList.class, consumer, SC_OK) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
 				// Build the list of parameters, right now just the cursor position.
@@ -339,7 +348,7 @@ public final class TwitterApiConnector {
 		final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");
 		return new TwitterApiGsonClosure<UserList>(httpClient_, gson_.create(),
-			consumer, SC_OK) {
+			UserList.class, consumer, SC_OK) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
 				// Build the list of parameters, right now just the cursor position.
@@ -382,7 +391,7 @@ public final class TwitterApiConnector {
 		final long sinceId, final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");		
 		return new TwitterApiGsonClosure<List<Tweet>>(httpClient_, gson_.create(),
-			consumer, SC_OK) {
+			new TypeToken<List<Tweet>>(){}.getType(), consumer, SC_OK) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
 				// Build the list of parameters, right now just the
@@ -463,7 +472,7 @@ public final class TwitterApiConnector {
 		final String query, final int perPage, final OAuthConsumer consumer) {
 		checkNotNull(query, "Query cannot be null!");
 		return new TwitterApiGsonClosure<List<User>>(httpClient_, gson_.create(),
-			consumer, SC_OK) {
+			new TypeToken<List<User>>(){}.getType(), consumer, SC_OK) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
 				// Build the list of parameters.
@@ -483,12 +492,16 @@ public final class TwitterApiConnector {
 			}
 		}.get(USER_SEARCH_API_URL);
 	}
+	
+	public HttpResponseEither<HttpFailure,Tweet> postTweet(final String text) {
+		return postTweet(text, null);
+	}
 		
 	public HttpResponseEither<HttpFailure,Tweet> postTweet(final String text,
 		final OAuthConsumer consumer) {
 		checkNotNull(text, "Tweet text cannot be null!");
 		return new TwitterApiGsonClosure<Tweet>(httpClient_, gson_.create(),
-			consumer, SC_OK) {
+			Tweet.class, consumer, SC_OK) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
 				final List<NameValuePair> params = new ArrayList<NameValuePair>();
