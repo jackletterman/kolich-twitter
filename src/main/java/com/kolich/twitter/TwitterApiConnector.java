@@ -242,8 +242,13 @@ public final class TwitterApiConnector {
 			// OAuth sign the request.
 			consumer_.sign(request);
 		}
+		/**
+		 * Override this method if you need to modify the request URI
+		 * before execution.  Allows the appending/inclusion of query
+		 * parameters (if a GET), etc.
+		 */
 		public URI getFinalURI(final URI uri) throws Exception {
-			// Default is no modifications to final URI.
+			// Default behavior is no modifications to final URI.
 			return uri;
 		}
 		@Override
@@ -259,7 +264,7 @@ public final class TwitterApiConnector {
 		private final int expectStatus_;
 		public TwitterApiStringOrHttpFailureClosure(final HttpClient client,
 			final OAuthConsumer consumer, final int expectStatus) {
-			super(client);			
+			super(client);
 			// If consumer is null, then we need to generate a default one
 			// using the key, secret, token and token secret.
 			consumer_ = (consumer == null) ? oAuthBuildConsumer() : consumer;
@@ -271,8 +276,13 @@ public final class TwitterApiConnector {
 			// OAuth sign the request.
 			consumer_.sign(request);
 		}
+		/**
+		 * Override this method if you need to modify the request URI
+		 * before execution.  Allows the appending/inclusion of query
+		 * parameters (if a GET), etc.
+		 */
 		public URI getFinalURI(final URI uri) throws Exception {
-			// Default is no modifications to final URI.
+			// Default behavior is no modifications to final URI.
 			return uri;
 		}
 		@Override
@@ -314,6 +324,7 @@ public final class TwitterApiConnector {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				return new URIBuilder(uri)
+					.addParameter(API_SCREEN_NAME_PARAM, username)
 					// Cursor can be null, if so then the default value is -1
 					.addParameter(API_CURSOR_PARAM,
 						(cursor == null) ? API_BEGIN_CURSOR : cursor)
@@ -341,6 +352,7 @@ public final class TwitterApiConnector {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				return new URIBuilder(uri)
+					.addParameter(API_SCREEN_NAME_PARAM, username)
 					// Cursor can be null, if so then the default value is -1
 					.addParameter(API_CURSOR_PARAM,
 						(cursor == null) ? API_BEGIN_CURSOR : cursor)
@@ -376,6 +388,7 @@ public final class TwitterApiConnector {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				final URIBuilder builder = new URIBuilder(uri)
+					.addParameter(API_SCREEN_NAME_PARAM, username)
 					.addParameter(API_COUNT_PARAM, Integer.toString(count));
 				if(maxId > 0L) {
 					builder.addParameter(API_MAXID_PARAM,
