@@ -28,20 +28,26 @@ package com.kolich.twitter.signpost;
 
 import oauth.signpost.commonshttp.CommonsHttpOAuthConsumer;
 
-public final class TwitterCommonsHttpOAuthConsumer
+public final class TwitterApiCommonsHttpOAuthConsumer
 	extends CommonsHttpOAuthConsumer {
 	
 	private static final long serialVersionUID = -6236727934196745589L;
 	
 	/**
 	 * The authenticated username that this token and secret belongs to.
+	 * May be null.
 	 */
 	private final String username_;
 
-	public TwitterCommonsHttpOAuthConsumer(String consumerKey,
+	public TwitterApiCommonsHttpOAuthConsumer(String consumerKey,
 		String consumerSecret, String username) {
 		super(consumerKey, consumerSecret);
 		username_ = username;
+	}
+	
+	public TwitterApiCommonsHttpOAuthConsumer(String consumerKey,
+		String consumerSecret) {
+		this(consumerKey, consumerSecret, null);
 	}
 	
 	public String getUsername() {

@@ -26,61 +26,38 @@
 
 package com.kolich.twitter.entities;
 
-import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import com.google.gson.annotations.SerializedName;
 
-public class Tweet extends TwitterEntity implements Comparable<Tweet> {
+public class TweetSearchResults extends TwitterEntity {
 	
-	@SerializedName("id_str")
-	private final String id_;
-	
-	@SerializedName("created_at")
-	private final Date createdAt_;
-	
-	@SerializedName("text")
-	private final String text_;
-	
-	public Tweet(String id, Date createdAt, String text) {
-		id_ = id;
-		createdAt_ = createdAt;
-		text_ = text;
+	@SerializedName("statuses")
+	private final List<Tweet> statuses_;
+		
+	public TweetSearchResults(List<Tweet> tweets) {
+		statuses_ = tweets;
 	}
 	
-	public Tweet() {
-		this(null, null, null);
+	public TweetSearchResults() {
+		this(new LinkedList<Tweet>());
 	}
 	
-	public String getId() {
-		return id_;
+	public List<Tweet> getResults() {
+		return new LinkedList<Tweet>(statuses_);
 	}
-	
-	public Date getCreatedAt() {
-		return new Date(createdAt_.getTime());
-	}
-	
-	public String getText() {
-		return text_;
-	}
-	
-	/*
-	public String getHtml() {
-		return (text_ != null) ? makeHyperlinks(text_) : null;
-	}
-	*/
-	
+
 	// Straight from Eclipse
-	// Uses only the id field
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((id_ == null) ? 0 : id_.hashCode());
+		result = prime * result + ((statuses_ == null) ? 0 : statuses_.hashCode());
 		return result;
 	}
 
 	// Straight from Eclipse
-	// Uses only the id field
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -89,18 +66,13 @@ public class Tweet extends TwitterEntity implements Comparable<Tweet> {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Tweet other = (Tweet) obj;
-		if (id_ == null) {
-			if (other.id_ != null)
+		TweetSearchResults other = (TweetSearchResults) obj;
+		if (statuses_ == null) {
+			if (other.statuses_ != null)
 				return false;
-		} else if (!id_.equals(other.id_))
+		} else if (!statuses_.equals(other.statuses_))
 			return false;
 		return true;
-	}
-
-	@Override
-	public int compareTo(Tweet t) {
-		return t.getCreatedAt().compareTo(getCreatedAt());
 	}
 
 }

@@ -30,19 +30,19 @@ import java.util.Date;
 
 import com.google.gson.annotations.SerializedName;
 
-public final class User extends TwitterEntity implements Comparable<User> {
+public class User extends TwitterEntity implements Comparable<User> {
 	
 	@SerializedName("screen_name")	
-	private String screenName_;
+	private final String screenName_;
 	
 	@SerializedName("name")
-	private String name_;	
+	private final String name_;	
 	
 	@SerializedName("created_at")
-	private Date createdAt_;
+	private final Date createdAt_;
 	
 	@SerializedName("profile_image_url")
-	private String profileImageUrl_;
+	private final String profileImageUrl_;
 	
 	public User(String screenName, String name, Date createdAt,
 		String profileImageUrl) {
@@ -59,37 +59,17 @@ public final class User extends TwitterEntity implements Comparable<User> {
 	public String getScreenName() {
 		return screenName_;
 	}
-
-	public User setScreenName(String screenName) {
-		screenName_ = screenName;
-		return this;
-	}
 	
 	public String getName() {
 		return name_;
 	}
-
-	public User setName(String name) {
-		name_ = name;
-		return this;
-	}
 	
 	public Date getCreatedAt() {
-		return createdAt_;
-	}
-
-	public User setCreatedAt(Date createdAt) {
-		createdAt_ = createdAt;
-		return this;
+		return new Date(createdAt_.getTime());
 	}
 
 	public String getProfileImageUrl_() {
 		return profileImageUrl_;
-	}
-
-	public User setProfileImageUrl(String profileImageUrl) {
-		profileImageUrl_ = profileImageUrl;
-		return this;
 	}
 	
 	// Straight from Eclipse

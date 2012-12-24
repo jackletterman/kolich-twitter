@@ -48,7 +48,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
@@ -63,10 +63,11 @@ import com.kolich.http.helpers.ByteArrayOrHttpFailureClosure;
 import com.kolich.http.helpers.GsonOrHttpFailureClosure;
 import com.kolich.http.helpers.StringOrHttpFailureClosure;
 import com.kolich.twitter.entities.Tweet;
+import com.kolich.twitter.entities.TweetSearchResults;
 import com.kolich.twitter.entities.User;
 import com.kolich.twitter.entities.UserList;
 import com.kolich.twitter.exceptions.TwitterApiException;
-import com.kolich.twitter.signpost.TwitterCommonsHttpOAuthConsumer;
+import com.kolich.twitter.signpost.TwitterApiCommonsHttpOAuthConsumer;
 
 public final class TwitterApiConnector {
 	
@@ -79,8 +80,7 @@ public final class TwitterApiConnector {
 	private static final String API_MAXID_PARAM = "max_id";
 	private static final String API_SINCEID_PARAM = "since_id";
 	private static final String API_STATUS_PARAM = "status";
-	//private static final String API_TAG_PARAM = "tag";
-	//private static final String RPP_TAG_PARAM = "rpp";
+	private static final String API_QUERY_PARAM = "q";
 	private static final String API_SCREEN_NAME_PARAM = "screen_name";
 	private static final String API_USER_SEARCH_QUERY_PARAM = "q";
 	private static final String API_USER_SEARCH_PERPAGE_PARAM = "per_page";
@@ -156,7 +156,7 @@ public final class TwitterApiConnector {
 	 * When using Twitter's search API, you can't ask for more than
 	 * 100 Tweets that contain a certain hash tag.
 	 */
-	//private static final int API_TAG_TWEETS_MAX_COUNT = 100;
+	private static final int API_SEARCH_TWEETS_MAX_COUNT = 100;
 	
 	/**
 	 * Specifies the number of search results to retrieve.
@@ -171,29 +171,27 @@ public final class TwitterApiConnector {
 	private static final int API_USER_SEARCH_PERPAGE_DEFAULT =
 		API_USER_SEARCH_PERPAGE_MAX;
 	
-	// Standard API calls, to be used once OAuth authenticated.
-	private static final String USER_API_URL =
-		"https://api.twitter.com/1.1/users/show.json";
-	
+	// Standard API calls, to be used once OAuth authenticated	
 	private static final String FRIENDS_LIST_API_URL =
 		"https://api.twitter.com/1.1/friends/list.json";
 	
 	private static final String FOLLOWERS_LIST_API_URL =
-		"https://api.twitter.com/1.1/followers/list.json";
+		"https://api.twitter.com/1.1/followers/list.json";	
 	
-	private static final String TWEETS_API_URL =
-		"https://api.twitter.com/1.1/statuses/user_timeline.json";
-	private static final String USER_SEARCH_API_URL =
+	private static final String USERS_SHOW_URL =
+		"https://api.twitter.com/1.1/users/show.json";
+	private static final String USERS_SEARCH_URL =
 		"https://api.twitter.com/1.1/users/search.json";
-	/*
-	private static final String TWEET_SEARCH_API_URL =
-		"http://search.twitter.com/search.json";
-	*/
-		
-	private static final String STATUSES_POST_UPDATE_URL =
+	
+	private static final String TWEET_SEARCH_URL =
+		"https://api.twitter.com/1.1/search/tweets.json";
+	
+	private static final String STATUSES_USER_TIMELINE_URL =
+		"https://api.twitter.com/1.1/statuses/user_timeline.json";	
+	private static final String STATUSES_UPDATE_URL =
 		"https://api.twitter.com/1.1/statuses/update.json";
 	
-	// OAuth specific init API calls
+	// OAuth specific API resources
 	private static final String OAUTH_REQUEST_TOKEN_URL =
 		"https://api.twitter.com/oauth/request_token";
 	private static final String OAUTH_ACCESS_TOKEN_URL = 
@@ -229,14 +227,7 @@ public final class TwitterApiConnector {
 			super(client, gson, type);
 			// If consumer is null, then we need to generate a default one
 			// using the key, secret, token and token secret.
-			if(consumer == null) {
-				final OAuthConsumer signWith = new CommonsHttpOAuthConsumer(
-					consumerKey_, consumerKeySecret_);
-				signWith.setTokenWithSecret(apiToken_, apiTokenSecret_);
-				consumer_ = signWith;
-			} else {
-				consumer_ = consumer;
-			}
+			consumer_ = (consumer == null) ? oAuthBuildConsumer() : consumer;
 			expectStatus_ = expectStatus;
 		}
 		public TwitterApiGsonClosure(final HttpClient client, final Gson gson,
@@ -247,7 +238,13 @@ public final class TwitterApiConnector {
 		}
 		@Override
 		public void before(final HttpRequestBase request) throws Exception {
+			request.setURI(getFinalURI(request.getURI()));
+			// OAuth sign the request.
 			consumer_.sign(request);
+		}
+		public URI getFinalURI(final URI uri) throws Exception {
+			// Default is no modifications to final URI.
+			return uri;
 		}
 		@Override
 		public boolean check(final HttpResponse response,
@@ -265,19 +262,18 @@ public final class TwitterApiConnector {
 			super(client);			
 			// If consumer is null, then we need to generate a default one
 			// using the key, secret, token and token secret.
-			if(consumer == null) {
-				final OAuthConsumer signWith = new CommonsHttpOAuthConsumer(
-					consumerKey_, consumerKeySecret_);
-				signWith.setTokenWithSecret(apiToken_, apiTokenSecret_);
-				consumer_ = signWith;
-			} else {
-				consumer_ = consumer;
-			}
+			consumer_ = (consumer == null) ? oAuthBuildConsumer() : consumer;
 			expectStatus_ = expectStatus;
 		}
 		@Override
 		public void before(final HttpRequestBase request) throws Exception {
+			request.setURI(getFinalURI(request.getURI()));
+			// OAuth sign the request.
 			consumer_.sign(request);
+		}
+		public URI getFinalURI(final URI uri) throws Exception {
+			// Default is no modifications to final URI.
+			return uri;
 		}
 		@Override
 		public boolean check(final HttpResponse response,
@@ -296,17 +292,11 @@ public final class TwitterApiConnector {
 		return new TwitterApiGsonClosure<User>(httpClient_, gson_.create(),
 			User.class, consumer, SC_OK) {
 			@Override
-			public void before(final HttpRequestBase request) throws Exception {
-				final List<NameValuePair> params = new ArrayList<NameValuePair>();		
-				params.add(new BasicNameValuePair(API_SCREEN_NAME_PARAM, username));
-				// Encode the query string parameters into something useful.
-				final String query = URLEncodedUtils.format(params, UTF_8);
-				request.setURI(URI.create(String.format("%s?%s",
-					request.getURI().toString(), query)));
-				// OAuth sign the request.
-				super.before(request);
+			public URI getFinalURI(final URI uri) throws Exception {
+				return new URIBuilder(uri)
+					.addParameter(API_SCREEN_NAME_PARAM, username).build();
 			}
-		}.get(USER_API_URL);
+		}.get(USERS_SHOW_URL);
 	}
 	
 	public HttpResponseEither<HttpFailure,UserList> getFriends(
@@ -322,25 +312,24 @@ public final class TwitterApiConnector {
 		return new TwitterApiGsonClosure<UserList>(httpClient_, gson_.create(),
 			UserList.class, consumer, SC_OK) {
 			@Override
-			public void before(final HttpRequestBase request) throws Exception {
-				// Build the list of parameters, right now just the cursor position.
-				final List<NameValuePair> params = new ArrayList<NameValuePair>();		
-				params.add(new BasicNameValuePair(API_CURSOR_PARAM,
+			public URI getFinalURI(final URI uri) throws Exception {
+				return new URIBuilder(uri)
 					// Cursor can be null, if so then the default value is -1
-					(cursor == null) ? API_BEGIN_CURSOR : cursor));
-				// Encode the query string parameters into something useful.
-				final String query = URLEncodedUtils.format(params, UTF_8);
-				request.setURI(URI.create(String.format("%s?%s",
-					request.getURI().toString(), query)));
-				// OAuth sign the request.
-				super.before(request);
+					.addParameter(API_CURSOR_PARAM,
+						(cursor == null) ? API_BEGIN_CURSOR : cursor)
+					.build();
 			}
 		}.get(FRIENDS_LIST_API_URL);
 	}
 	
 	public HttpResponseEither<HttpFailure,UserList> getFollowers(
 		final String username) {
-		return getFollowers(username, API_BEGIN_CURSOR, null);
+		return getFollowers(username, API_BEGIN_CURSOR);
+	}
+	
+	public HttpResponseEither<HttpFailure,UserList> getFollowers(
+		final String username, final String cursor) {
+		return getFollowers(username, cursor, null);
 	}
 		
 	public HttpResponseEither<HttpFailure,UserList> getFollowers(
@@ -350,27 +339,19 @@ public final class TwitterApiConnector {
 		return new TwitterApiGsonClosure<UserList>(httpClient_, gson_.create(),
 			UserList.class, consumer, SC_OK) {
 			@Override
-			public void before(final HttpRequestBase request) throws Exception {
-				// Build the list of parameters, right now just the cursor position.
-				final List<NameValuePair> params = new ArrayList<NameValuePair>();		
-				params.add(new BasicNameValuePair(API_CURSOR_PARAM,
+			public URI getFinalURI(final URI uri) throws Exception {
+				return new URIBuilder(uri)
 					// Cursor can be null, if so then the default value is -1
-					(cursor == null) ? API_BEGIN_CURSOR : cursor));
-				// Encode the query string parameters into something useful.
-				final String query = URLEncodedUtils.format(params, UTF_8);
-				request.setURI(URI.create(String.format("%s?%s",
-					request.getURI().toString(), query)));
-				// OAuth sign the request.
-				super.before(request);
+					.addParameter(API_CURSOR_PARAM,
+						(cursor == null) ? API_BEGIN_CURSOR : cursor)
+					.build();
 			}
 		}.get(FOLLOWERS_LIST_API_URL);
 	}
 	
 	public HttpResponseEither<HttpFailure,List<Tweet>> getTweets(
 		final String username) {
-		return getTweets(username, API_TWEETS_DEFAULT_COUNT, 0L, 0L,
-			// Use a default OAuthConsumer
-			null);
+		return getTweets(username, API_TWEETS_DEFAULT_COUNT, 0L, 0L);
 	}
 	
 	public HttpResponseEither<HttpFailure,List<Tweet>> getTweets(
@@ -393,64 +374,51 @@ public final class TwitterApiConnector {
 		return new TwitterApiGsonClosure<List<Tweet>>(httpClient_, gson_.create(),
 			new TypeToken<List<Tweet>>(){}.getType(), consumer, SC_OK) {
 			@Override
-			public void before(final HttpRequestBase request) throws Exception {
-				// Build the list of parameters, right now just the
-				// Tweet count and page ID.
-				final List<NameValuePair> params = new ArrayList<NameValuePair>();
-				params.add(new BasicNameValuePair(API_COUNT_PARAM,
-					Integer.toString(count)));
+			public URI getFinalURI(final URI uri) throws Exception {
+				final URIBuilder builder = new URIBuilder(uri)
+					.addParameter(API_COUNT_PARAM, Integer.toString(count));
 				if(maxId > 0L) {
-					params.add(new BasicNameValuePair(API_MAXID_PARAM,
-						Long.toString(maxId - 1L)));
+					builder.addParameter(API_MAXID_PARAM,
+						Long.toString(maxId - 1L));
 				}
 				if(sinceId > 0L) {
-					params.add(new BasicNameValuePair(API_SINCEID_PARAM,
-						Long.toString(sinceId)));
+					builder.addParameter(API_SINCEID_PARAM,
+						Long.toString(sinceId));
 				}
-				// Encode the query string parameters into something useful.
-				final String query = URLEncodedUtils.format(params, UTF_8);
-				request.setURI(URI.create(String.format("%s?%s",
-					request.getURI().toString(), query)));
-				// OAuth sign the request.
-				super.before(request);
+				return builder.build();
 			}
-		}.get(TWEETS_API_URL);
+		}.get(STATUSES_USER_TIMELINE_URL);
 	}
 	
-	/*
-	public HttpResponseEither<HttpFailure,String> getTagTweets(final String tag,
-		final int count, final long maxId, final long sinceId) {
-		checkNotNull(tag, "Tag cannot be null!");
-		// Build the URL we will issue requests against.
-		String url = String.format(TWEET_SEARCH_API_URL);
-		// Build the list of parameters.
-		final List<NameValuePair> params = new ArrayList<NameValuePair>();
-		params.add(new BasicNameValuePair(API_TAG_PARAM, tag));
-		params.add(new BasicNameValuePair(RPP_TAG_PARAM,
-				(count <= 0 || count > API_TAG_TWEETS_MAX_COUNT) ?
-					Integer.toString(API_TWEETS_DEFAULT_COUNT) :
-						Integer.toString(count)
-			));
-		if(maxId > 0L) {
-			params.add(new BasicNameValuePair(API_MAXID_PARAM,
-				Long.toString(maxId - 1L)));
-		}
-		if(sinceId > 0L) {
-			params.add(new BasicNameValuePair(API_SINCEID_PARAM,
-				Long.toString(sinceId)));
-		}
-		// Encode the query string parameters into something useful.
-		final String query = URLEncodedUtils.format(params, UTF_8);
-		url = String.format("%s?%s", url, query);
-		logger__.debug("getTagTweets() URL: " + url);
-		return get(url);
+	public HttpResponseEither<HttpFailure,TweetSearchResults> searchTweets(
+		final String query, final int count, final long sinceId,
+		final OAuthConsumer consumer) {
+		checkNotNull(query, "Query cannot be null!");
+		return new TwitterApiGsonClosure<TweetSearchResults>(httpClient_,
+			gson_.create(), TweetSearchResults.class, consumer, SC_OK) {
+			@Override
+			public URI getFinalURI(final URI uri) throws Exception {
+				final URIBuilder builder = new URIBuilder(uri)
+					.addParameter(API_QUERY_PARAM, query)
+					.addParameter(API_COUNT_PARAM, 
+						(count <= 0 || count > API_SEARCH_TWEETS_MAX_COUNT) ?
+							Integer.toString(API_TWEETS_DEFAULT_COUNT) :
+							Integer.toString(count));
+				if(sinceId > 0L) {
+					builder.addParameter(API_SINCEID_PARAM,
+						Long.toString(sinceId));
+				}
+				return builder.build();
+			}
+		}.get(TWEET_SEARCH_URL);
 	}	
-	public HttpResponseEither<HttpFailure,String> getTagTweets(final String tag) {
-		return getTagTweets(tag, API_TWEETS_DEFAULT_COUNT, 0L, 0L);
-	}
-	*/
 	
-	public HttpResponseEither<HttpFailure,byte[]> userGetProfileImageFromUrl(
+	public HttpResponseEither<HttpFailure,TweetSearchResults> searchTweets(
+		final String query) {
+		return searchTweets(query, API_TWEETS_DEFAULT_COUNT, 0L, null);
+	}
+	
+	public HttpResponseEither<HttpFailure,byte[]> userGetProfileImage(
 		final String url) {
 		checkNotNull(url, "Avatar URL cannot be null!");
 		return new ByteArrayOrHttpFailureClosure(httpClient_).get(url);
@@ -474,30 +442,23 @@ public final class TwitterApiConnector {
 		return new TwitterApiGsonClosure<List<User>>(httpClient_, gson_.create(),
 			new TypeToken<List<User>>(){}.getType(), consumer, SC_OK) {
 			@Override
-			public void before(final HttpRequestBase request) throws Exception {
-				// Build the list of parameters.
-				final List<NameValuePair> params = new ArrayList<NameValuePair>();
-				params.add(new BasicNameValuePair(API_USER_SEARCH_QUERY_PARAM, query));
-				params.add(new BasicNameValuePair(API_USER_SEARCH_PERPAGE_PARAM,
+			public URI getFinalURI(final URI uri) throws Exception {
+				return new URIBuilder(uri)
+					.addParameter(API_USER_SEARCH_QUERY_PARAM, query)
+					.addParameter(API_USER_SEARCH_PERPAGE_PARAM, 
 						(perPage <= 0 || perPage > API_USER_SEARCH_PERPAGE_MAX) ?
 							Integer.toString(API_USER_SEARCH_PERPAGE_DEFAULT) :
-								Integer.toString(perPage)
-					));
-				// Encode the query string parameters into something useful.
-				final String query = URLEncodedUtils.format(params, UTF_8);
-				request.setURI(URI.create(String.format("%s?%s",
-					request.getURI().toString(), query)));
-				// OAuth sign the request.
-				super.before(request);
+							Integer.toString(perPage))
+					.build();
 			}
-		}.get(USER_SEARCH_API_URL);
+		}.get(USERS_SEARCH_URL);
 	}
 	
-	public HttpResponseEither<HttpFailure,Tweet> postTweet(final String text) {
-		return postTweet(text, null);
+	public HttpResponseEither<HttpFailure,Tweet> statusUpdate(final String text) {
+		return statusUpdate(text, null);
 	}
 		
-	public HttpResponseEither<HttpFailure,Tweet> postTweet(final String text,
+	public HttpResponseEither<HttpFailure,Tweet> statusUpdate(final String text,
 		final OAuthConsumer consumer) {
 		checkNotNull(text, "Tweet text cannot be null!");
 		return new TwitterApiGsonClosure<Tweet>(httpClient_, gson_.create(),
@@ -517,7 +478,7 @@ public final class TwitterApiConnector {
 				// OAuth sign the request.
 				super.before(request);
 			}
-		}.post(STATUSES_POST_UPDATE_URL);
+		}.post(STATUSES_UPDATE_URL);
 	}
 	
 	public OAuthConsumer xAuthRetrieveAccessTokenConsumer(
@@ -552,6 +513,7 @@ public final class TwitterApiConnector {
 					throw new TwitterApiException("Failed to UTF-8 " +
 						"encode xAuthApiAuthenticate POST body.", e);
 				}
+				// OAuth sign the request.
 				super.before(request);
 			}
 		}.post(OAUTH_ACCESS_TOKEN_URL);
@@ -573,7 +535,7 @@ public final class TwitterApiConnector {
 	
 	public OAuthConsumer xAuthBuildOAuthConsumer(final String token,
 		final String secret, final String username) {
-		final OAuthConsumer consumer = new TwitterCommonsHttpOAuthConsumer(
+		final OAuthConsumer consumer = new TwitterApiCommonsHttpOAuthConsumer(
 			consumerKey_, consumerKeySecret_,
 			// Set the username if we have one.
 			(username != null) ? username : null);
@@ -631,61 +593,73 @@ public final class TwitterApiConnector {
 			API_OAUTH_TOKEN_PARAM, token);
 	}
 	
-	/**
-	 * Given a token, a token secret, and a username returns a pre-loaded
-	 * {@link OAuthConsumer} for the caller.  Has the apps default consumer
-	 * key and consumer key secret pre-set.
-	 * @param token
-	 * @param secret
-	 * @param username
-	 * @return
-	 */
-	public OAuthConsumer oAuthGetConsumer(final String token,
-		final String secret, final String username) {
-		// Generate a new OAuthConsumer with the fetched token and token
-		// secret pre-set for the caller.
-		final OAuthConsumer consumer = new TwitterCommonsHttpOAuthConsumer(
+	public OAuthConsumer oAuthBuildConsumer(final String consumerKey,
+		final String consumerSecret, final String apiToken,
+		final String apiTokenSecret, final String username) {
+		final OAuthConsumer consumer = new TwitterApiCommonsHttpOAuthConsumer(
 			consumerKey_, consumerKeySecret_, username);
-		consumer.setTokenWithSecret(token, secret);
+		consumer.setTokenWithSecret(apiToken_, apiTokenSecret_);
 		return consumer;
 	}
 	
 	/**
+	 * Given a token, a token secret, and a username returns a pre-loaded
+	 * {@link TwitterApiCommonsHttpOAuthConsumer} for the caller.  Has the 
+	 * default consumer key and consumer key secret pre-set.
+	 * @param apiToken
+	 * @param apiTokenSecret
+	 * @param username
+	 * @return
+	 */
+	public OAuthConsumer oAuthBuildConsumer(final String apiToken,
+		final String apiTokenSecret, final String username) {
+		// Generate a new OAuthConsumer with the fetched token and token
+		// secret pre-set for the caller.
+		return oAuthBuildConsumer(consumerKey_, consumerKeySecret_,
+			apiToken, apiTokenSecret, username);
+	}
+	
+	public OAuthConsumer oAuthBuildConsumer() {
+		return oAuthBuildConsumer(consumerKey_, consumerKeySecret_,
+			apiToken_, apiTokenSecret_, null);
+	}
+	
+	/**
 	 * Retreives an OAuth access token once a valid token and token verifier
-	 * have been received.  Returns a new {@link TwitterCommonsHttpOAuthConsumer}
+	 * have been received.  Returns a new {@link TwitterApiCommonsHttpOAuthConsumer}
 	 * pre-loaded with the resulting token and token secret as
 	 * authenticated by the user.
 	 * @param token
 	 * @param verifier
 	 * @return
 	 */
-	public OAuthConsumer oAuthRetrieveAccessTokenConsumer(final String token,
+	public OAuthConsumer oAuthGetAccessTokenConsumer(final String token,
 		final String verifier) {
-		final HttpParameters params = oAuthRetrieveAccessTokenParams(token,
+		final HttpParameters params = oAuthGetAccessTokenParams(token,
 			verifier);
 		final String username = params.getFirst(API_OAUTH_SCREEN_NAME_PARAM),
 			newToken = params.getFirst(API_OAUTH_TOKEN_PARAM),
 			newSecret = params.getFirst(API_OAUTH_TOKEN_SECRET_PARAM);
 		// Generate a new OAuthConsumer with the fetched token and token
 		// secret pre-set for the caller.
-		final OAuthConsumer consumer = new TwitterCommonsHttpOAuthConsumer(
+		final OAuthConsumer consumer = new TwitterApiCommonsHttpOAuthConsumer(
 			consumerKey_, consumerKeySecret_, username);
 		consumer.setTokenWithSecret(newToken, newSecret);
 		return consumer;
 	}
 	
-	private final HttpParameters oAuthRetrieveAccessTokenParams(
+	private final HttpParameters oAuthGetAccessTokenParams(
 		final String token, final String verifier) {
 		final HttpResponseEither<HttpFailure,String> response =
-			oAuthRetrieveAccessToken(token, verifier);
+			oAuthGetAccessToken(token, verifier);
 		if(!response.success()) {
-			throw new TwitterApiException("Failed to retrieve O-Auth " +
+			throw new TwitterApiException("Failed to retrieve OAuth " +
 				"access token parameters.", response.left().getCause());
 		}
 		return decodeForm(response.right());
 	}
 	
-	private final HttpResponseEither<HttpFailure,String> oAuthRetrieveAccessToken(
+	private final HttpResponseEither<HttpFailure,String> oAuthGetAccessToken(
 		final String token, final String verifier) {
 		checkNotNull(token, "Token cannot be null!");
 		checkNotNull(verifier, "Verifier cannot be null!");

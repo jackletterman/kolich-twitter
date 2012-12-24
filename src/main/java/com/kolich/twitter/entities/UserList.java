@@ -26,13 +26,12 @@
 
 package com.kolich.twitter.entities;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import com.google.gson.annotations.SerializedName;
 
-public final class UserList extends TwitterEntity {
+public class UserList extends TwitterEntity {
 	
 	@SerializedName("users")
 	private final List<User> users_;
@@ -46,7 +45,7 @@ public final class UserList extends TwitterEntity {
 	}
 	
 	public List<User> getUsers() {
-		return Collections.unmodifiableList(users_);
+		return new LinkedList<User>(users_);
 	}
 
 	// Straight from Eclipse
