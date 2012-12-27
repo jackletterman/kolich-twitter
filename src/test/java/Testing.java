@@ -41,7 +41,7 @@ public class Testing {
 		}
 		
 		final HttpResponseEither<HttpFailure,Tweet> tweet =
-			twitter.postTweet("test test test, move along.. nothing to see here");
+			twitter.statusUpdate("test test test, move along.. nothing to see here");
 		if(tweet.success()) {
 			System.out.println(tweet.right().getId());
 		} else {
