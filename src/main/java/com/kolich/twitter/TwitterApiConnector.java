@@ -28,13 +28,14 @@ package com.kolich.twitter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.kolich.common.DefaultCharacterEncoding.UTF_8;
-import static com.kolich.twitter.entities.TwitterEntity.getTwitterGsonBuilder;
+import static com.kolich.twitter.entities.TwitterEntity.getNewTwitterGsonInstance;
 import static oauth.signpost.OAuth.decodeForm;
 import static org.apache.http.HttpStatus.SC_OK;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,14 +55,12 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.kolich.http.HttpClient4Closure.HttpFailure;
 import com.kolich.http.HttpClient4Closure.HttpResponseEither;
-import com.kolich.http.helpers.ByteArrayOrHttpFailureClosure;
-import com.kolich.http.helpers.GsonOrHttpFailureClosure;
-import com.kolich.http.helpers.StringOrHttpFailureClosure;
+import com.kolich.http.helpers.ByteArrayClosures.ByteArrayOrHttpFailureClosure;
+import com.kolich.http.helpers.GsonClosures.GsonOrHttpFailureClosure;
+import com.kolich.http.helpers.StringClosures.StringOrHttpFailureClosure;
 import com.kolich.twitter.entities.Tweet;
 import com.kolich.twitter.entities.TweetSearchResults;
 import com.kolich.twitter.entities.User;
@@ -200,41 +199,42 @@ public final class TwitterApiConnector {
 		"https://api.twitter.com/oauth/authenticate";
 	
 	private final HttpClient httpClient_;
-	private final GsonBuilder gson_;
 	
-	private String consumerKey_;
-	private String consumerKeySecret_;
-	private String apiToken_;
-	private String apiTokenSecret_;
+	private final String consumerKey_;
+	private final String consumerKeySecret_;
+	private final String apiToken_;
+	private final String apiTokenSecret_;
 		
 	public TwitterApiConnector(final HttpClient httpClient,
-		final GsonBuilder gson) {
+		final String consumerKey, final String consumerKeySecret,
+		final String apiToken, final String apiTokenSecret) {
+		checkNotNull(httpClient, "HttpClient cannot be null.");		
+		checkNotNull(consumerKey, "OAuth consumer key cannot be null.");
+		checkNotNull(consumerKeySecret, "OAuth consumer key secret cannot be null.");
+		checkNotNull(apiToken, "OAuth API token cannot be null.");
+		checkNotNull(apiTokenSecret, "OAuth API token secret cannot be null.");
 		httpClient_ = httpClient;
-		gson_ = gson;
+		consumerKey_ = consumerKey;
+		consumerKeySecret_ = consumerKeySecret;
+		apiToken_ = apiToken;
+		apiTokenSecret_ = apiTokenSecret;
 	}
-	
-	public TwitterApiConnector(final HttpClient httpClient) {
-		this(httpClient, getTwitterGsonBuilder());
-	}
-	
-	private abstract class TwitterApiGsonClosure<T>
-		extends GsonOrHttpFailureClosure<T> {
+		
+	private abstract class TwitterApiGsonClosure<S>
+		extends GsonOrHttpFailureClosure<S> {
 		private final OAuthConsumer consumer_;
-		private final int expectStatus_;
-		public TwitterApiGsonClosure(final HttpClient client, final Gson gson,
-			final Type type, final OAuthConsumer consumer,
-			final int expectStatus) {
-			super(client, gson, type);
+		public TwitterApiGsonClosure(final Type type,
+			final OAuthConsumer consumer) {
+			super(httpClient_, getNewTwitterGsonInstance(), type);
 			// If consumer is null, then we need to generate a default one
 			// using the key, secret, token and token secret.
-			consumer_ = (consumer == null) ? oAuthBuildConsumer() : consumer;
-			expectStatus_ = expectStatus;
+			consumer_ = (consumer == null) ?
+				oAuthBuildDefaultConsumer() :
+				consumer;
 		}
-		public TwitterApiGsonClosure(final HttpClient client, final Gson gson,
-			final Class<T> clazz, final OAuthConsumer consumer,
-			final int expectStatus) {
-			this(client, gson, TypeToken.get(clazz).getType(), consumer,
-				expectStatus);
+		public TwitterApiGsonClosure(final Class<S> clazz,
+			final OAuthConsumer consumer) {
+			this(TypeToken.get(clazz).getType(), consumer);
 		}
 		@Override
 		public void before(final HttpRequestBase request) throws Exception {
@@ -254,21 +254,20 @@ public final class TwitterApiConnector {
 		@Override
 		public boolean check(final HttpResponse response,
 			final HttpContext context) {
-			return expectStatus_ == response.getStatusLine().getStatusCode();
+			return response.getStatusLine().getStatusCode() == SC_OK;
 		}
 	}
 	
 	private abstract class TwitterApiStringOrHttpFailureClosure
 		extends StringOrHttpFailureClosure {
 		private final OAuthConsumer consumer_;
-		private final int expectStatus_;
-		public TwitterApiStringOrHttpFailureClosure(final HttpClient client,
-			final OAuthConsumer consumer, final int expectStatus) {
-			super(client);
+		public TwitterApiStringOrHttpFailureClosure(final OAuthConsumer consumer) {
+			super(httpClient_);
 			// If consumer is null, then we need to generate a default one
 			// using the key, secret, token and token secret.
-			consumer_ = (consumer == null) ? oAuthBuildConsumer() : consumer;
-			expectStatus_ = expectStatus;
+			consumer_ = (consumer == null) ?
+				oAuthBuildDefaultConsumer() :
+				consumer;
 		}
 		@Override
 		public void before(final HttpRequestBase request) throws Exception {
@@ -288,7 +287,7 @@ public final class TwitterApiConnector {
 		@Override
 		public boolean check(final HttpResponse response,
 			final HttpContext context) {
-			return expectStatus_ == response.getStatusLine().getStatusCode();
+			return response.getStatusLine().getStatusCode() == SC_OK;
 		}
 	}
 	
@@ -299,8 +298,7 @@ public final class TwitterApiConnector {
 	public HttpResponseEither<HttpFailure,User> getUser(final String username,
 		final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");
-		return new TwitterApiGsonClosure<User>(httpClient_, gson_.create(),
-			User.class, consumer, SC_OK) {
+		return new TwitterApiGsonClosure<User>(User.class, consumer) {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				return new URIBuilder(uri)
@@ -319,8 +317,7 @@ public final class TwitterApiConnector {
 		final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");
 		checkNotNull(cursor, "Cursor cannot be null!");
-		return new TwitterApiGsonClosure<UserList>(httpClient_, gson_.create(),
-			UserList.class, consumer, SC_OK) {
+		return new TwitterApiGsonClosure<UserList>(UserList.class, consumer) {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				return new URIBuilder(uri)
@@ -347,8 +344,7 @@ public final class TwitterApiConnector {
 		final String username, final String cursor,
 		final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");
-		return new TwitterApiGsonClosure<UserList>(httpClient_, gson_.create(),
-			UserList.class, consumer, SC_OK) {
+		return new TwitterApiGsonClosure<UserList>(UserList.class, consumer) {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				return new URIBuilder(uri)
@@ -383,8 +379,9 @@ public final class TwitterApiConnector {
 		final String username, final int count, final long maxId,
 		final long sinceId, final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");		
-		return new TwitterApiGsonClosure<List<Tweet>>(httpClient_, gson_.create(),
-			new TypeToken<List<Tweet>>(){}.getType(), consumer, SC_OK) {
+		return new TwitterApiGsonClosure<List<Tweet>>(
+			new TypeToken<List<Tweet>>(){}.getType(),
+			consumer) {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				final URIBuilder builder = new URIBuilder(uri)
@@ -407,8 +404,8 @@ public final class TwitterApiConnector {
 		final String query, final int count, final long sinceId,
 		final OAuthConsumer consumer) {
 		checkNotNull(query, "Query cannot be null!");
-		return new TwitterApiGsonClosure<TweetSearchResults>(httpClient_,
-			gson_.create(), TweetSearchResults.class, consumer, SC_OK) {
+		return new TwitterApiGsonClosure<TweetSearchResults>(
+			TweetSearchResults.class, consumer) {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				final URIBuilder builder = new URIBuilder(uri)
@@ -452,8 +449,9 @@ public final class TwitterApiConnector {
 	public HttpResponseEither<HttpFailure,List<User>> userSearch(
 		final String query, final int perPage, final OAuthConsumer consumer) {
 		checkNotNull(query, "Query cannot be null!");
-		return new TwitterApiGsonClosure<List<User>>(httpClient_, gson_.create(),
-			new TypeToken<List<User>>(){}.getType(), consumer, SC_OK) {
+		return new TwitterApiGsonClosure<List<User>>(
+			new TypeToken<List<User>>(){}.getType(),
+			consumer) {
 			@Override
 			public URI getFinalURI(final URI uri) throws Exception {
 				return new URIBuilder(uri)
@@ -474,8 +472,7 @@ public final class TwitterApiConnector {
 	public HttpResponseEither<HttpFailure,Tweet> statusUpdate(final String text,
 		final OAuthConsumer consumer) {
 		checkNotNull(text, "Tweet text cannot be null!");
-		return new TwitterApiGsonClosure<Tweet>(httpClient_, gson_.create(),
-			Tweet.class, consumer, SC_OK) {
+		return new TwitterApiGsonClosure<Tweet>(Tweet.class, consumer) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
 				final List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -507,7 +504,7 @@ public final class TwitterApiConnector {
 		consumer.setAdditionalParameters(params);
 		// Grab an OAuth access token from the API.
 		final HttpResponseEither<HttpFailure,String> response = 
-			new TwitterApiStringOrHttpFailureClosure(httpClient_, consumer, SC_OK) {
+			new TwitterApiStringOrHttpFailureClosure(consumer) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
 				// xAuth authentication requires that we add the mode, username,
@@ -579,8 +576,8 @@ public final class TwitterApiConnector {
 		final HttpParameters params = new HttpParameters();
 		params.put(API_OAUTH_CALLBACK_URL_PARAM, callbackUrl, true);
 		consumer.setAdditionalParameters(params);
-		return new TwitterApiStringOrHttpFailureClosure(httpClient_,
-			consumer, SC_OK){}.post(OAUTH_REQUEST_TOKEN_URL);
+		return new TwitterApiStringOrHttpFailureClosure(consumer){}
+			.post(OAUTH_REQUEST_TOKEN_URL);
 	}
 	
 	/**
@@ -602,8 +599,16 @@ public final class TwitterApiConnector {
 		final HttpParameters params = decodeForm(response.right());
 		final String token = params.getFirst(API_OAUTH_TOKEN_PARAM);
 		logger__.debug("Retreived OAuth token: " + token);
-		return String.format("%s?%s=%s", OAUTH_AUTHENTICATE_URL,
-			API_OAUTH_TOKEN_PARAM, token);
+		URIBuilder builder = null;
+		try {
+			builder = new URIBuilder(OAUTH_AUTHENTICATE_URL)
+				.addParameter(API_OAUTH_TOKEN_PARAM, token);
+		} catch (URISyntaxException e) {
+			// Should *never* happen, but, meh.
+			throw new TwitterApiException("Failed to parse URI: " +
+				OAUTH_AUTHENTICATE_URL, e);
+		}
+		return builder.toString();
 	}
 	
 	public OAuthConsumer oAuthBuildConsumer(final String consumerKey,
@@ -632,7 +637,7 @@ public final class TwitterApiConnector {
 			apiToken, apiTokenSecret, username);
 	}
 	
-	public OAuthConsumer oAuthBuildConsumer() {
+	public OAuthConsumer oAuthBuildDefaultConsumer() {
 		return oAuthBuildConsumer(consumerKey_, consumerKeySecret_,
 			apiToken_, apiTokenSecret_, null);
 	}
@@ -682,28 +687,8 @@ public final class TwitterApiConnector {
 		params.put(API_OAUTH_TOKEN_PARAM, token, true);
 		params.put(API_OAUTH_VERIFIER_PARAM, verifier, true);
 		consumer.setAdditionalParameters(params);
-		return new TwitterApiStringOrHttpFailureClosure(httpClient_,
-			consumer, SC_OK){}.post(OAUTH_ACCESS_TOKEN_URL);
-	}
-			
-	public TwitterApiConnector setConsumerKey(String consumerKey) {
-		consumerKey_ = consumerKey;
-		return this;
+		return new TwitterApiStringOrHttpFailureClosure(consumer){}
+			.post(OAUTH_ACCESS_TOKEN_URL);
 	}
 	
-	public TwitterApiConnector setConsumerKeySecret(String consumerKeySecret) {
-		consumerKeySecret_ = consumerKeySecret;
-		return this;
-	}
-	
-	public TwitterApiConnector setApiToken(String apiToken) {
-		apiToken_ = apiToken;
-		return this;
-	}
-	
-	public TwitterApiConnector setApiTokenSecret(String apiTokenSecret) {
-		apiTokenSecret_ = apiTokenSecret;
-		return this;
-	}
-		
 }

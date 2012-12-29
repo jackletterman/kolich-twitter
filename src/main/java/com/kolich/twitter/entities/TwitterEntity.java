@@ -48,19 +48,19 @@ import com.kolich.twitter.date.TwitterDateFormat;
 
 public abstract class TwitterEntity extends KolichCommonEntity {
 	
-	public static final GsonBuilder getTwitterGsonBuilder() {
+	public static final GsonBuilder getNewTwitterGsonBuilder() {
 		return getDefaultGsonBuilder().
 			registerTypeAdapter(new TypeToken<Date>(){}.getType(),
 				new TwitterEntityDateTypeAdapter());
 	}
 	
-	public static final Gson getTwitterGsonInstance() {
-		return getTwitterGsonBuilder().create();
+	public static final Gson getNewTwitterGsonInstance() {
+		return getNewTwitterGsonBuilder().create();
 	}
 
 	@Override
 	public String toString() {
-		return getTwitterGsonInstance().toJson(this);
+		return getNewTwitterGsonInstance().toJson(this);
 	}
 	
 	private static class TwitterEntityDateTypeAdapter 

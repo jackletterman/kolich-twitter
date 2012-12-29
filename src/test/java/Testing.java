@@ -10,20 +10,15 @@ import com.kolich.twitter.entities.Tweet;
 import com.kolich.twitter.entities.User;
 import com.kolich.twitter.entities.UserList;
 
-
 public class Testing {
 
 	public static void main(String[] args) {
 		
-		final HttpClient client = KolichHttpClientFactory.getNewInstanceNoProxySelector("@markkolich");
-		final TwitterApiConnector twitter = new TwitterApiConnector(client);
-		
-		twitter
-			.setConsumerKey("your key here")
-			.setConsumerKeySecret("your secret here")
-			.setApiToken("your api token here")
-			.setApiTokenSecret("your api token secret here");
-		
+		final HttpClient client = KolichHttpClientFactory.getNewInstanceNoProxySelector("@your username");
+		final TwitterApiConnector twitter = new TwitterApiConnector(client,
+			"your key here", "your secret here",
+			"your api token here", "your api token secret here");
+				
 		final HttpResponseEither<HttpFailure,List<Tweet>> tweets =
 			twitter.getTweets("markkolich");
 		if(tweets.success()) {
