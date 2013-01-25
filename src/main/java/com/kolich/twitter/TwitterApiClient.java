@@ -68,10 +68,10 @@ import com.kolich.twitter.entities.UserList;
 import com.kolich.twitter.exceptions.TwitterApiException;
 import com.kolich.twitter.signpost.TwitterApiCommonsHttpOAuthConsumer;
 
-public final class TwitterApiConnector {
+public final class TwitterApiClient {
 	
 	private static final Logger logger__ = 
-		LoggerFactory.getLogger(TwitterApiConnector.class);
+		LoggerFactory.getLogger(TwitterApiClient.class);
 		
 	private static final String API_BEGIN_CURSOR = "-1";
 	private static final String API_CURSOR_PARAM = "cursor";
@@ -205,7 +205,7 @@ public final class TwitterApiConnector {
 	private final String apiToken_;
 	private final String apiTokenSecret_;
 		
-	public TwitterApiConnector(final HttpClient httpClient,
+	public TwitterApiClient(final HttpClient httpClient,
 		final String consumerKey, final String consumerKeySecret,
 		final String apiToken, final String apiTokenSecret) {
 		checkNotNull(httpClient, "HttpClient cannot be null.");		
