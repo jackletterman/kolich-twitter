@@ -5,7 +5,7 @@ import org.apache.http.client.HttpClient;
 import com.kolich.http.HttpClient4Closure.HttpFailure;
 import com.kolich.http.HttpClient4Closure.HttpResponseEither;
 import com.kolich.http.KolichDefaultHttpClient.KolichHttpClientFactory;
-import com.kolich.twitter.TwitterApiConnector;
+import com.kolich.twitter.TwitterApiClient;
 import com.kolich.twitter.entities.Tweet;
 import com.kolich.twitter.entities.User;
 import com.kolich.twitter.entities.UserList;
@@ -15,7 +15,7 @@ public class Testing {
 	public static void main(String[] args) {
 		
 		final HttpClient client = KolichHttpClientFactory.getNewInstanceNoProxySelector("@your username");
-		final TwitterApiConnector twitter = new TwitterApiConnector(client,
+		final TwitterApiClient twitter = new TwitterApiClient(client,
 			"your key here", "your secret here",
 			"your api token here", "your api token secret here");
 				
