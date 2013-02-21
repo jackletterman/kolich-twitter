@@ -56,11 +56,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.reflect.TypeToken;
-import com.kolich.http.HttpClient4Closure.HttpFailure;
-import com.kolich.http.HttpClient4Closure.HttpResponseEither;
-import com.kolich.http.helpers.ByteArrayClosures.ByteArrayOrHttpFailureClosure;
-import com.kolich.http.helpers.GsonClosures.GsonOrHttpFailureClosure;
-import com.kolich.http.helpers.StringClosures.StringOrHttpFailureClosure;
+import com.kolich.http.blocking.helpers.ByteArrayClosures.ByteArrayOrHttpFailureClosure;
+import com.kolich.http.blocking.helpers.GsonClosures.GsonOrHttpFailureClosure;
+import com.kolich.http.blocking.helpers.StringClosures.StringOrHttpFailureClosure;
+import com.kolich.http.common.either.HttpResponseEither;
+import com.kolich.http.common.response.HttpFailure;
 import com.kolich.twitter.entities.Tweet;
 import com.kolich.twitter.entities.TweetSearchResults;
 import com.kolich.twitter.entities.User;

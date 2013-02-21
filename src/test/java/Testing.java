@@ -2,9 +2,9 @@ import java.util.List;
 
 import org.apache.http.client.HttpClient;
 
-import com.kolich.http.HttpClient4Closure.HttpFailure;
-import com.kolich.http.HttpClient4Closure.HttpResponseEither;
-import com.kolich.http.KolichDefaultHttpClient.KolichHttpClientFactory;
+import com.kolich.http.blocking.KolichDefaultHttpClient.KolichHttpClientFactory;
+import com.kolich.http.common.either.HttpResponseEither;
+import com.kolich.http.common.response.HttpFailure;
 import com.kolich.twitter.TwitterApiClient;
 import com.kolich.twitter.entities.Tweet;
 import com.kolich.twitter.entities.User;
