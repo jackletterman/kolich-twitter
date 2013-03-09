@@ -56,10 +56,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.reflect.TypeToken;
+import com.kolich.common.either.Either;
 import com.kolich.http.blocking.helpers.ByteArrayClosures.ByteArrayOrHttpFailureClosure;
 import com.kolich.http.blocking.helpers.GsonClosures.GsonOrHttpFailureClosure;
 import com.kolich.http.blocking.helpers.StringClosures.StringOrHttpFailureClosure;
-import com.kolich.http.common.either.HttpResponseEither;
 import com.kolich.http.common.response.HttpFailure;
 import com.kolich.twitter.entities.Tweet;
 import com.kolich.twitter.entities.TweetSearchResults;
@@ -291,11 +291,11 @@ public final class TwitterApiClient {
 		}
 	}
 	
-	public HttpResponseEither<HttpFailure,User> getUser(final String username) {
+	public Either<HttpFailure,User> getUser(final String username) {
 		return getUser(username, null);
 	}
 	
-	public HttpResponseEither<HttpFailure,User> getUser(final String username,
+	public Either<HttpFailure,User> getUser(final String username,
 		final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");
 		return new TwitterApiGsonClosure<User>(User.class, consumer) {
@@ -307,14 +307,12 @@ public final class TwitterApiClient {
 		}.get(USERS_SHOW_URL);
 	}
 	
-	public HttpResponseEither<HttpFailure,UserList> getFriends(
-		final String username) {
+	public Either<HttpFailure,UserList> getFriends(final String username) {
 		return getFriends(username, API_BEGIN_CURSOR, null);
 	}
 		
-	public HttpResponseEither<HttpFailure,UserList> getFriends(
-		final String username, final String cursor,
-		final OAuthConsumer consumer) {
+	public Either<HttpFailure,UserList> getFriends(final String username,
+		final String cursor, final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");
 		checkNotNull(cursor, "Cursor cannot be null!");
 		return new TwitterApiGsonClosure<UserList>(UserList.class, consumer) {
@@ -330,19 +328,17 @@ public final class TwitterApiClient {
 		}.get(FRIENDS_LIST_API_URL);
 	}
 	
-	public HttpResponseEither<HttpFailure,UserList> getFollowers(
-		final String username) {
+	public Either<HttpFailure,UserList> getFollowers(final String username) {
 		return getFollowers(username, API_BEGIN_CURSOR);
 	}
 	
-	public HttpResponseEither<HttpFailure,UserList> getFollowers(
-		final String username, final String cursor) {
+	public Either<HttpFailure,UserList> getFollowers(final String username,
+		final String cursor) {
 		return getFollowers(username, cursor, null);
 	}
 		
-	public HttpResponseEither<HttpFailure,UserList> getFollowers(
-		final String username, final String cursor,
-		final OAuthConsumer consumer) {
+	public Either<HttpFailure,UserList> getFollowers(final String username,
+		final String cursor, final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");
 		return new TwitterApiGsonClosure<UserList>(UserList.class, consumer) {
 			@Override
@@ -357,14 +353,13 @@ public final class TwitterApiClient {
 		}.get(FOLLOWERS_LIST_API_URL);
 	}
 	
-	public HttpResponseEither<HttpFailure,List<Tweet>> getTweets(
+	public Either<HttpFailure,List<Tweet>> getTweets(
 		final String username) {
 		return getTweets(username, API_TWEETS_DEFAULT_COUNT, 0L, 0L);
 	}
 	
-	public HttpResponseEither<HttpFailure,List<Tweet>> getTweets(
-		final String username, final int count, final long maxId,
-		final long sinceId) {
+	public Either<HttpFailure,List<Tweet>> getTweets(final String username,
+		final int count, final long maxId, final long sinceId) {
 		return getTweets(username,
 			// Count cannot be <= zero nor can it be greater
 			// than the API max we self-inforce on ourselves.
@@ -375,9 +370,9 @@ public final class TwitterApiClient {
 			null);
 	}
 	
-	public HttpResponseEither<HttpFailure,List<Tweet>> getTweets(
-		final String username, final int count, final long maxId,
-		final long sinceId, final OAuthConsumer consumer) {
+	public Either<HttpFailure,List<Tweet>> getTweets(final String username,
+		final int count, final long maxId, final long sinceId,
+		final OAuthConsumer consumer) {
 		checkNotNull(username, "Username cannot be null!");		
 		return new TwitterApiGsonClosure<List<Tweet>>(
 			new TypeToken<List<Tweet>>(){}.getType(),
@@ -400,9 +395,8 @@ public final class TwitterApiClient {
 		}.get(STATUSES_USER_TIMELINE_URL);
 	}
 	
-	public HttpResponseEither<HttpFailure,TweetSearchResults> searchTweets(
-		final String query, final int count, final long sinceId,
-		final OAuthConsumer consumer) {
+	public Either<HttpFailure,TweetSearchResults> searchTweets(final String query,
+		final int count, final long sinceId, final OAuthConsumer consumer) {
 		checkNotNull(query, "Query cannot be null!");
 		return new TwitterApiGsonClosure<TweetSearchResults>(
 			TweetSearchResults.class, consumer) {
@@ -423,31 +417,28 @@ public final class TwitterApiClient {
 		}.get(TWEET_SEARCH_URL);
 	}	
 	
-	public HttpResponseEither<HttpFailure,TweetSearchResults> searchTweets(
-		final String query) {
+	public Either<HttpFailure,TweetSearchResults> searchTweets(final String query) {
 		return searchTweets(query, API_TWEETS_DEFAULT_COUNT, 0L, null);
 	}
 	
-	public HttpResponseEither<HttpFailure,byte[]> userGetProfileImage(
-		final String url) {
+	public Either<HttpFailure,byte[]> userGetProfileImage(final String url) {
 		checkNotNull(url, "Avatar URL cannot be null!");
 		return new ByteArrayOrHttpFailureClosure(httpClient_).get(url);
 	}
 	
-	public HttpResponseEither<HttpFailure,List<User>> userSearch(
-		final String query) {
+	public Either<HttpFailure,List<User>> userSearch(final String query) {
 		return userSearch(query, API_USER_SEARCH_PERPAGE_DEFAULT,
 			// Default OAuthConsumer
 			null);
 	}
 	
-	public HttpResponseEither<HttpFailure,List<User>> userSearch(
-		final String query, final OAuthConsumer consumer) {
+	public Either<HttpFailure,List<User>> userSearch(final String query,
+		final OAuthConsumer consumer) {
 		return userSearch(query, API_USER_SEARCH_PERPAGE_DEFAULT, consumer);
 	}
 	
-	public HttpResponseEither<HttpFailure,List<User>> userSearch(
-		final String query, final int perPage, final OAuthConsumer consumer) {
+	public Either<HttpFailure,List<User>> userSearch(final String query,
+		final int perPage, final OAuthConsumer consumer) {
 		checkNotNull(query, "Query cannot be null!");
 		return new TwitterApiGsonClosure<List<User>>(
 			new TypeToken<List<User>>(){}.getType(),
@@ -465,11 +456,11 @@ public final class TwitterApiClient {
 		}.get(USERS_SEARCH_URL);
 	}
 	
-	public HttpResponseEither<HttpFailure,Tweet> statusUpdate(final String text) {
+	public Either<HttpFailure,Tweet> statusUpdate(final String text) {
 		return statusUpdate(text, null);
 	}
 		
-	public HttpResponseEither<HttpFailure,Tweet> statusUpdate(final String text,
+	public Either<HttpFailure,Tweet> statusUpdate(final String text,
 		final OAuthConsumer consumer) {
 		checkNotNull(text, "Tweet text cannot be null!");
 		return new TwitterApiGsonClosure<Tweet>(Tweet.class, consumer) {
@@ -503,7 +494,7 @@ public final class TwitterApiClient {
 		params.put(API_XAUTH_PASSWORD_PARAM, password, true);
 		consumer.setAdditionalParameters(params);
 		// Grab an OAuth access token from the API.
-		final HttpResponseEither<HttpFailure,String> response = 
+		final Either<HttpFailure,String> response = 
 			new TwitterApiStringOrHttpFailureClosure(consumer) {
 			@Override
 			public void before(final HttpRequestBase request) throws Exception {
@@ -564,7 +555,7 @@ public final class TwitterApiClient {
 	 * @param callbackUrl
 	 * @return
 	 */
-	public HttpResponseEither<HttpFailure,String> oAuthRetrieveRequestToken(
+	public Either<HttpFailure,String> oAuthRetrieveRequestToken(
 		final String callbackUrl) {
 		checkNotNull(callbackUrl, "Callback URL cannot be null!");
 		final OAuthConsumer consumer = new CommonsHttpOAuthConsumer(
@@ -588,7 +579,7 @@ public final class TwitterApiClient {
 	 * @return
 	 */
 	public String oAuthGetAuthorizeUrl(final String callbackUrl) {
-		final HttpResponseEither<HttpFailure,String> response =
+		final Either<HttpFailure,String> response =
 			oAuthRetrieveRequestToken(callbackUrl);
 		if(!response.success()) {
 			throw new TwitterApiException("Failed to build Twitter OAuth " +
@@ -668,7 +659,7 @@ public final class TwitterApiClient {
 	
 	private final HttpParameters oAuthGetAccessTokenParams(
 		final String token, final String verifier) {
-		final HttpResponseEither<HttpFailure,String> response =
+		final Either<HttpFailure,String> response =
 			oAuthGetAccessToken(token, verifier);
 		if(!response.success()) {
 			throw new TwitterApiException("Failed to retrieve OAuth " +
@@ -677,7 +668,7 @@ public final class TwitterApiClient {
 		return decodeForm(response.right());
 	}
 	
-	private final HttpResponseEither<HttpFailure,String> oAuthGetAccessToken(
+	private final Either<HttpFailure,String> oAuthGetAccessToken(
 		final String token, final String verifier) {
 		checkNotNull(token, "Token cannot be null!");
 		checkNotNull(verifier, "Verifier cannot be null!");

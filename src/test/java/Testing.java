@@ -2,8 +2,8 @@ import java.util.List;
 
 import org.apache.http.client.HttpClient;
 
+import com.kolich.common.either.Either;
 import com.kolich.http.blocking.KolichDefaultHttpClient.KolichHttpClientFactory;
-import com.kolich.http.common.either.HttpResponseEither;
 import com.kolich.http.common.response.HttpFailure;
 import com.kolich.twitter.TwitterApiClient;
 import com.kolich.twitter.entities.Tweet;
@@ -19,7 +19,7 @@ public class Testing {
 			"your key here", "your secret here",
 			"your api token here", "your api token secret here");
 				
-		final HttpResponseEither<HttpFailure,List<Tweet>> tweets =
+		final Either<HttpFailure,List<Tweet>> tweets =
 			twitter.getTweets("markkolich");
 		if(tweets.success()) {
 			for(final Tweet t : tweets.right()) {
@@ -27,7 +27,7 @@ public class Testing {
 			}
 		}
 		
-		final HttpResponseEither<HttpFailure,UserList> friends =
+		final Either<HttpFailure,UserList> friends =
 			twitter.getFriends("markkolich");
 		if(friends.success()) {
 			for(final User u : friends.right().getUsers()) {
@@ -35,7 +35,7 @@ public class Testing {
 			}
 		}
 		
-		final HttpResponseEither<HttpFailure,Tweet> tweet =
+		final Either<HttpFailure,Tweet> tweet =
 			twitter.statusUpdate("test test test, move along.. nothing to see here");
 		if(tweet.success()) {
 			System.out.println(tweet.right().getId());
