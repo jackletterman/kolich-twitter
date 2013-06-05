@@ -33,7 +33,7 @@ object Dependencies {
   
   // Internal dependencies.
 
-  private val kolichHttpClient4Closure = "com.kolich" % "kolich-httpclient4-closure" % "1.2" % "compile"
+  private val kolichHttpClient4Closure = "com.kolich" % "kolich-httpclient4-closure" % "1.2.1" % "compile"
   
   // External dependencies.
 
@@ -60,7 +60,7 @@ object Twitter extends Build {
   import Resolvers._
 
   private val aName = "kolich-twitter"
-  private val aVer = "0.0.7"
+  private val aVer = "0.0.8"
   private val aOrg = "com.kolich"
 
   lazy val twitter: Project = Project(
@@ -69,7 +69,7 @@ object Twitter extends Build {
     settings = Defaults.defaultSettings ++ Seq(resolvers := depResolvers) ++ Seq(
       version := aVer,
       organization := aOrg,
-      scalaVersion := "2.9.2",
+      scalaVersion := "2.10.1",
       javacOptions ++= Seq("-Xlint", "-g"),
       shellPrompt := { (state: State) => { "%s:%s> ".format(aName, aVer) } },
       // True to export the packaged JAR instead of just the compiled .class files.
