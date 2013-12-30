@@ -31,7 +31,7 @@ object Dependencies {
   
   // Internal dependencies.
 
-  private val kolichHttpClient4Closure = "com.kolich" % "kolich-httpclient4-closure" % "1.2.3" % "compile"
+  private val kolichHttpClient4Closure = "com.kolich" % "kolich-httpclient4-closure" % "1.2.4" % "compile"
   
   // External dependencies.
 
@@ -58,7 +58,7 @@ object Twitter extends Build {
   import Resolvers._
 
   private val aName = "kolich-twitter"
-  private val aVer = "0.0.9"
+  private val aVer = "0.1.0"
   private val aOrg = "com.kolich"
 
   lazy val twitter: Project = Project(
