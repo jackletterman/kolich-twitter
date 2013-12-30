@@ -27,13 +27,11 @@
 import sbt._
 import sbt.Keys._
 
-import com.typesafe.sbteclipse.plugin.EclipsePlugin._
-
 object Dependencies {
   
   // Internal dependencies.
 
-  private val kolichHttpClient4Closure = "com.kolich" % "kolich-httpclient4-closure" % "1.2.1" % "compile"
+  private val kolichHttpClient4Closure = "com.kolich" % "kolich-httpclient4-closure" % "1.2.3" % "compile"
   
   // External dependencies.
 
@@ -60,7 +58,7 @@ object Twitter extends Build {
   import Resolvers._
 
   private val aName = "kolich-twitter"
-  private val aVer = "0.0.8"
+  private val aVer = "0.0.9"
   private val aOrg = "com.kolich"
 
   lazy val twitter: Project = Project(
@@ -125,12 +123,7 @@ object Twitter extends Build {
         file("dist") / "test" / defaultPath.getName
       },
       libraryDependencies ++= deps,
-      retrieveManaged := true) ++
-      Seq(EclipseKeys.createSrc := EclipseCreateSrc.Default,
-        // Make sure SBT also fetches/loads the "src" (source) JAR's for
-        // all declared dependencies.
-        EclipseKeys.withSource := true,
-        // This is a Java project, only.
-        EclipseKeys.projectFlavor := EclipseProjectFlavor.Java))
+      retrieveManaged := true)
+  )
 
 }

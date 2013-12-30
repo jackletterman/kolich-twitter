@@ -26,23 +26,21 @@
 
 package com.kolich.twitter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.kolich.common.DefaultCharacterEncoding.UTF_8;
-import static com.kolich.twitter.entities.TwitterEntity.getNewTwitterGsonInstance;
-import static oauth.signpost.OAuth.decodeForm;
-import static org.apache.http.HttpStatus.SC_OK;
-
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Type;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.google.gson.reflect.TypeToken;
+import com.kolich.common.functional.either.Either;
+import com.kolich.http.blocking.helpers.ByteArrayClosures.ByteArrayOrHttpFailureClosure;
+import com.kolich.http.blocking.helpers.GsonClosures.GsonOrHttpFailureClosure;
+import com.kolich.http.blocking.helpers.StringClosures.StringOrHttpFailureClosure;
+import com.kolich.http.common.response.HttpFailure;
+import com.kolich.twitter.entities.Tweet;
+import com.kolich.twitter.entities.TweetSearchResults;
+import com.kolich.twitter.entities.User;
+import com.kolich.twitter.entities.UserList;
+import com.kolich.twitter.exceptions.TwitterApiException;
+import com.kolich.twitter.signpost.TwitterApiCommonsHttpOAuthConsumer;
 import oauth.signpost.OAuthConsumer;
 import oauth.signpost.commonshttp.CommonsHttpOAuthConsumer;
 import oauth.signpost.http.HttpParameters;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -55,18 +53,18 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.reflect.TypeToken;
-import com.kolich.common.either.Either;
-import com.kolich.http.blocking.helpers.ByteArrayClosures.ByteArrayOrHttpFailureClosure;
-import com.kolich.http.blocking.helpers.GsonClosures.GsonOrHttpFailureClosure;
-import com.kolich.http.blocking.helpers.StringClosures.StringOrHttpFailureClosure;
-import com.kolich.http.common.response.HttpFailure;
-import com.kolich.twitter.entities.Tweet;
-import com.kolich.twitter.entities.TweetSearchResults;
-import com.kolich.twitter.entities.User;
-import com.kolich.twitter.entities.UserList;
-import com.kolich.twitter.exceptions.TwitterApiException;
-import com.kolich.twitter.signpost.TwitterApiCommonsHttpOAuthConsumer;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.kolich.common.DefaultCharacterEncoding.UTF_8;
+import static com.kolich.twitter.entities.TwitterEntity.getNewTwitterGsonInstance;
+import static oauth.signpost.OAuth.decodeForm;
+import static org.apache.http.HttpStatus.SC_OK;
 
 public final class TwitterApiClient {
 	
