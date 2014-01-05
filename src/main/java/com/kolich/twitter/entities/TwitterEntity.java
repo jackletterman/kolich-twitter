@@ -30,6 +30,7 @@ import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.TimeZone;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -71,7 +72,9 @@ public abstract class TwitterEntity extends KolichCommonEntity {
 	
 	    private TwitterEntityDateTypeAdapter() {
 	    	twitterFormat_ = TwitterDateFormat.getNewInstance();
+            twitterFormat_.setTimeZone(TimeZone.getTimeZone("GMT"));
 	    	iso8601Format_ = ISO8601DateFormat.getNewInstance();
+            iso8601Format_.setTimeZone(TimeZone.getTimeZone("GMT"));
 	    }
 	
 	    @Override

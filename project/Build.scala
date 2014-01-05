@@ -58,7 +58,7 @@ object Twitter extends Build {
   import Resolvers._
 
   private val aName = "kolich-twitter"
-  private val aVer = "0.1.0"
+  private val aVer = "0.1.1"
   private val aOrg = "com.kolich"
 
   lazy val twitter: Project = Project(
