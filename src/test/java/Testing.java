@@ -1,14 +1,13 @@
-import java.util.List;
-
-import org.apache.http.client.HttpClient;
-
-import com.kolich.common.either.Either;
-import com.kolich.http.blocking.KolichDefaultHttpClient.KolichHttpClientFactory;
+import com.kolich.common.functional.either.Either;
+import com.kolich.http.KolichDefaultHttpClient.KolichHttpClientFactory;
 import com.kolich.http.common.response.HttpFailure;
 import com.kolich.twitter.TwitterApiClient;
 import com.kolich.twitter.entities.Tweet;
 import com.kolich.twitter.entities.User;
 import com.kolich.twitter.entities.UserList;
+import org.apache.http.client.HttpClient;
+
+import java.util.List;
 
 public class Testing {
 
